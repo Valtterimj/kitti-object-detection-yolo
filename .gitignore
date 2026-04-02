@@ -8,3 +8,11 @@ wheels/
 
 # Virtual environments
 .venv
+
+/data/
+.DS_Store
+*.pt
+runs/
+yolo11s_kitti3/
+__pycache__/
+*.pyc
