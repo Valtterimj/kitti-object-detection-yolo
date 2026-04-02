@@ -2,27 +2,82 @@ from pathlib import Path
 from collections import Counter
 from ultralytics import YOLO
 
-import sys
+from pathlib import Path
+
+from kitti_object_detection_yolo.data.kitti_reader import read_kitti_samples
+from kitti_object_detection_yolo.data.convert_kitti_to_yolo import process_split
+from kitti_object_detection_yolo.data.splits import train_val_split
+
+def preprocess_kitti_data(raw_data: Path, output: Path, val_fraction: float = 0.2, seed: int = 42) -> None:
+
+    print(f"reading KITTI samples form: {raw_data}")
+    samples = read_kitti_samples(raw_data)
+    print(f"Found {len(samples)} total samples")
+
+    train_samples, val_samples = train_val_split(
+        samples, 
+        val_fraction=val_fraction,
+        seed=seed,
+    )
+
+    print(f"Train samples: {len(train_samples)}")
+    print(f"Val samples: {len(val_samples)}")
+
+    print("\nProcessing train split...")
+    trian_images, train_objects = process_split(
+        samples=train_samples,
+        output_root=output,
+        split_name="train",
+    )
+
+    print("Processing val split...")
+    val_images, val_objects = process_split(
+        samples=val_samples,
+        output_root=output,
+        split_name="val"
+    )
+
+    print(f"Processed dataset writtten to: {output}")
+    print(f"Train: {trian_images} images, {train_objects} objects")
+    print(f"Val: {val_images} images, {val_objects} objects")
+
 
 def main():
+   
+    project_root = Path(__file__).resolve().parents[2]
+    raw_data_root = project_root / "data" / "kitti" / "raw"
+    processed_data_root = project_root / "data" / "kitti" / "processed"
+    val_fraction = 0.2
+    seed = 42
 
-    print(sys.path)
-    # print("Reading KITTI data")
-    # PROJECT_ROOT = Path(__file__).resolve().parents[2]
-    # DATA_YAML = PROJECT_ROOT / "kitti.yaml"
 
-    # model = YOLO("yolo11s.pt")
+    # Ucomment to process the data 
 
-    # model.train(
-    #     data=str(DATA_YAML),
-    #     epochs=50,
-    #     imgsz=640,
-    #     batch=8,
-    #     device=0,
-    #     project=str(PROJECT_ROOT / "runs"),
-    #     name="yolo11s_kitti",
-    #     pretrained=True,
+    # preprocess_kitti_data(
+    #     raw_data=raw_data_root,
+    #     output=processed_data_root,
+    #     val_fraction=val_fraction,
+    #     seed=seed
     # )
+
+    print("Reading KITTI data")
+    PROJECT_ROOT = Path(__file__).resolve().parents[2]
+    DATA_YAML = PROJECT_ROOT / "kitti.yaml"
+
+    model = YOLO("yolo11s.pt")
+
+    model.train(
+        data=str(DATA_YAML),
+        epochs=50,
+        imgsz=640,
+        batch=8,
+        device=0,
+        project=str(PROJECT_ROOT / "runs"),
+        name="yolo11s_kitti",
+        pretrained=True,
+    )
+
+
 
 if __name__ == "__main__":
     main()
